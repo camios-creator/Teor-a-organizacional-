@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orgi contra el Caos</title>
+<style>
+:root{--bg:#10162b;--card:#1a2340;--ink:#eef2ff;--mut:#a3b2d6;--acc:#ffb020;--ok:#22c27a;--bad:#ff5468;--line:#2e3b66}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;-webkit-tap-highlight-color:transparent}
+main{width:100%;max-width:760px;padding:12px 12px 40px}
+.stage{position:relative;border-radius:16px;overflow:hidden;border:2px solid var(--line);background:#000;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;aspect-ratio:800/420;cursor:pointer}
+.mute{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:18px;cursor:pointer}
+.panel{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}
+h1{font-size:2rem;margin:.1em 0 .3em;line-height:1.1;letter-spacing:-.02em}
+h2{font-size:1.15rem;margin:.3em 0 .6em;line-height:1.3}
+p{margin:.4em 0}
+.mut{color:var(--mut);font-size:.92rem}
+.c{text-align:center}
+.btn{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;font:inherit;color:inherit;background:#222d52;border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;cursor:pointer}
+.btn:hover:not(:disabled),.btn:focus-visible{border-color:var(--acc);outline:none}
+.btn:disabled{cursor:default}
+.btn.ok{border-color:var(--ok);background:#163f35}
+.btn.no{border-color:var(--bad);background:#4a1e2a}
+.key{flex:none;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.big{justify-content:center;text-align:center;font-size:1.15rem;font-weight:800;padding:16px;background:var(--acc);border-color:var(--acc);color:#241600}
+.big:hover:not(:disabled){filter:brightness(1.08)}
+.big:disabled{opacity:.4}
+input{width:100%;font:inherit;padding:13px;margin:8px 0 4px;border-radius:12px;border:2px solid var(--line);background:#0e1430;color:var(--ink)}
+.hud2{display:flex;justify-content:space-between;gap:10px;font-weight:700;font-size:.92rem;margin-bottom:6px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.tbw{display:flex;align-items:center;gap:10px}
+.tb{flex:1;height:10px;background:#0e1430;border-radius:9px;overflow:hidden}
+.tb i{display:block;height:100%;width:100%;background:var(--ok);border-radius:9px}
+.tb i.low{background:var(--bad)}
+.fb{border-radius:12px;padding:12px 14px;margin:12px 0}
+.okb{background:#163f35}.nob{background:#4a1e2a}
+.nota{font-size:5rem;font-weight:800;color:var(--acc);text-align:center;line-height:1;letter-spacing:-.04em}
+.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+details{border-bottom:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer;font-weight:600}
+ol.sel{padding-left:24px;margin:6px 0}
+ol.sel .btn{margin:5px 0}
+.sec{margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+ <div class="stage"><canvas id="cv"></canvas><button class="mute" id="mu" aria-label="Sonido">🔊</button></div>
+ <div class="panel" id="panel"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const M=(q,c,w,e)=>({q,o:[c,...w],a:0,s:1,e});
+const F=(q,o,a,e)=>({q,o,a,e});
+const O=(q,it,e)=>({q,it,e});
+const DI=['Diferenciación','Integración'],VF=['Verdadero','Falso'];
+
+// ====== CONTENIDO: edita aquí preguntas, opciones y explicaciones ======
+const LV=[
+{n:'Diseño organizacional',qs:[
+ M('¿Qué es el diseño organizacional?','La manera en que una empresa distribuye sus funciones, establece responsabilidades y organiza sus departamentos para alcanzar sus objetivos',['Decorar y distribuir los espacios físicos de la oficina','Contratar más personal cada vez que aumentan las ventas','Registrar las operaciones contables de la empresa'],'Es distribuir funciones, responsabilidades y departamentos para lograr los objetivos.'),
+ M('En el ejemplo de la exposición, ¿qué área registra las operaciones de la empresa?','Contabilidad',['Ventas','Logística','Atención al cliente'],'Ventas atiende a los clientes, contabilidad registra las operaciones y logística controla los productos.'),
+ F('Aunque cada área cumple una función distinta, todas deben trabajar de forma coordinada.',VF,0,'Cada área tiene su función, pero todas deben coordinarse para alcanzar los objetivos.'),
+ M('¿Qué puede pasar si una empresa no tiene una buena organización?','Pueden presentarse errores y conflictos',['Las ventas aumentan automáticamente','Desaparece la necesidad de comunicarse','Todas las áreas hacen lo mismo y eso es mejor'],'Sin buena organización aparecen errores y conflictos entre las áreas.')]},
+{n:'Pasos del diseño',qs:[
+ O('Ordena los pasos del diseño organizacional:',['Definir los objetivos de la empresa','Identificar las actividades necesarias','Distribuir las funciones','Crear los departamentos','Establecer responsabilidades y autoridad','Coordinar y evaluar las actividades'],'Se parte de los objetivos y se termina coordinando y evaluando que todo funcione.'),
+ M('¿Con qué paso comienza el diseño organizacional?','Definiendo los objetivos de la empresa',['Creando los departamentos','Evaluando los resultados','Asignando la autoridad'],'Primero se definen los objetivos; de ahí se derivan las demás decisiones.'),
+ M('Una empresa quiere aumentar sus ventas. Según el diseño organizacional, ¿qué debe hacer?','Organizar sus áreas y definir quién es responsable de cada actividad',['Esperar a que cada área decida por su cuenta','Concentrar todas las funciones en una sola persona','Eliminar los departamentos'],'Para lograr un objetivo hay que organizar las áreas y asignar responsables.'),
+ M('¿Para qué se coordinan y evalúan las actividades al final del proceso?','Para comprobar que todo funcione correctamente',['Para reducir el número de departamentos','Para cambiar los objetivos iniciales','Para evitar que los empleados se comuniquen'],'Es el paso final: verificar que el diseño funcione como se esperaba.')]},
+{n:'Diferenciación e integración',qs:[
+ F('Dividir el trabajo y asignar funciones específicas a cada departamento es…',DI,0,'La diferenciación divide el trabajo y asigna funciones específicas.'),
+ F('Coordinar las áreas para que trabajen por un mismo objetivo es…',DI,1,'La integración une y coordina el trabajo de las áreas.'),
+ F('Ventas se encarga de los clientes y contabilidad de las finanzas. Esto es un ejemplo de…',DI,0,'Cada área tiene una función específica: eso es diferenciación.'),
+ M('¿Qué relación existe entre comunicación e integración?','La comunicación permite compartir información y coordinar actividades, y así integrar las áreas',['No tienen ninguna relación','La integración elimina la necesidad de comunicarse','La comunicación solo sirve para diferenciar funciones'],'Sin comunicación, los departamentos no pueden coordinarse ni integrarse.')]},
+{n:'Conflictos y cambio',qs:[
+ F('Un conflicto siempre es negativo para la empresa.',VF,1,'Bien manejado, un conflicto puede ser una oportunidad para mejorar.'),
+ M('¿Cómo se pueden prevenir los conflictos?','Estableciendo responsabilidades, canales de comunicación y reuniones de coordinación',['Evitando que los departamentos se comuniquen','Aumentando los niveles de aprobación','Ignorando los problemas hasta que desaparezcan'],'Una mala comunicación genera errores, retrasos y conflictos; estas medidas los previenen.'),
+ M('¿Cómo puede una empresa reducir la resistencia al cambio?','Con capacitación, información y participación de los empleados',['Imponiendo los cambios sin avisar','Despidiendo a quienes se resisten','Esperando a que se acostumbren solos'],'La resistencia surge por miedo, falta de conocimientos o costumbre; el objetivo es facilitar la adaptación.'),
+ M('¿Cuándo puede ser necesario un cambio estructural?','Cuando la empresa crece, incorpora tecnología o cambia sus objetivos',['Cuando todo funciona perfectamente','Únicamente cuando hay que despedir personal','Cuando se cambia el logo de la empresa'],'El cambio estructural modifica funciones, autoridad y departamentos para mejorar el funcionamiento y agilizar decisiones.'),
+ O('Ordena los pasos del rediseño organizacional:',['Diagnosticar los problemas','Proponer mejoras','Implementar los cambios','Evaluar los resultados'],'El rediseño revisa y mejora la estructura para ganar eficiencia, coordinación y mejor distribución de responsabilidades.')]},
+{n:'Caso práctico',qs:[
+ M('Una empresa comercial aumenta sus ventas, pero tiene retrasos, errores de inventario y conflictos entre departamentos. ¿Cuáles son las causas?','Mala comunicación, falta de coordinación y exceso de autorizaciones de la gerencia',['Falta de clientes y precios muy bajos','Demasiada capacitación de los empleados','Exceso de departamentos y de tecnología'],'Esas son las causas identificadas en el caso práctico.'),
+ M('En el caso práctico, ¿cuál NO fue una solución propuesta?','Despedir a todo el personal de almacén',['Definir responsabilidades','Implementar un sistema compartido de información','Delegar decisiones operativas'],'Las soluciones: definir responsabilidades, compartir información, mejorar la coordinación y delegar decisiones operativas.'),
+ M('¿Por qué es importante delegar responsabilidades?','Para que las decisiones no dependan de un solo gerente y el trabajo sea más ágil',['Para que el gerente deje de ser necesario','Para aumentar los niveles de aprobación','Para que cada área trabaje aislada'],'Delegar agiliza la toma de decisiones y evita que todo dependa de la gerencia.'),
+ M('¿Qué resultado se espera con las soluciones del caso?','Reducir errores, agilizar los pedidos y mejorar el servicio al cliente',['Aumentar los conflictos entre departamentos','Eliminar el área de ventas','Tener más niveles de autorización'],'Mejor coordinación y decisiones delegadas reducen errores y aceleran los pedidos.')]}
+];
+// Un jefe y un escenario por cada zona (mismo orden que LV)
+const Z=[
+{boss:'Don Desorden',c:'#8b7cff',sky:['#9fd3ff','#e8f6ff'],far:'#b2d0ee',near:'#7fa7d6',gr:'#34507a'},
+{boss:'La Improvisación',c:'#ff8a1f',sky:['#ffc98a','#fff1dc'],far:'#f2c9a0',near:'#d9a070',gr:'#6b4a2e'},
+{boss:'El Aislamiento',c:'#12b06a',sky:['#a8efcb','#effff6'],far:'#a2dcc0',near:'#6fbf9a',gr:'#2b5e48'},
+{boss:'La Resistencia',c:'#ff4f8b',sky:['#f7b3d0','#fff0f6'],far:'#eab0c9',near:'#cf7fa3',gr:'#6a2f4a'},
+{boss:'El Cuello de Botella',c:'#ffc531',sky:['#1f2657','#5a5fa8'],far:'#323a7c',near:'#444d9a',gr:'#141838'}];
+// ====== FIN DEL CONTENIDO ======
+
+// ====== RANKING COMPARTIDO ======
+// Pega aquí la URL de tu Firebase Realtime Database, por ejemplo:
+// 'https://mi-proyecto-default-rtdb.firebaseio.com'
+// Si la dejas vacía, el ranking se guarda solo en cada dispositivo.
+const DB_URL='';
+let remote=[];
+async function pull(){if(!DB_URL)return;try{const o=await(await fetch(DB_URL+'/ranking.json')).json();remote=Object.values(o||{}).sort((a,b)=>b.s-a.s||b.p-a.p).slice(0,10)}catch{}}
+async function push(r){if(!DB_URL)return;try{await fetch(DB_URL+'/ranking.json',{method:'POST',body:JSON.stringify(r)})}catch{}}
+const load=()=>{try{return JSON.parse(localStorage.getItem('orgiRank')||'[]')}catch{return[]}};
+const rank=()=>{const R=DB_URL?remote:load();return R.length?`<div class="sec"><h2>${DB_URL?'Ranking del curso':'Mejores notas en este dispositivo'}</h2>${R.slice(0,5).map((r,i)=>`<div class="row"><span>${['🥇','🥈','🥉','4.','5.'][i]} ${esc(r.n)}</span><b>${(+r.s).toFixed(1)}</b></div>`).join('')}</div>`:''};
+async function refresh(){await pull();const e=$('rk');if(e)e.innerHTML=rank()}
+
+// ====== SONIDO ======
+let AC=null,muted=false;try{muted=localStorage.getItem('orgiMute')=='1'}catch{}
+function tone(f,d=.12,type='square',v=.05,delay=0){if(muted)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume();const t=AC.currentTime+delay,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch{}}
+const SFX={jump:()=>tone(520,.1,'square',.035),coin:()=>{tone(880,.07,'sine',.07);tone(1320,.09,'sine',.06,.05)},hit:()=>tone(110,.25,'sawtooth',.07),ask:()=>{tone(300,.12,'triangle',.07);tone(450,.15,'triangle',.07,.12)},
+ ok:()=>[523,659,784,1046].forEach((f,i)=>tone(f,.14,'triangle',.07,i*.07)),bad:()=>[300,220,150].forEach((f,i)=>tone(f,.18,'sawtooth',.05,i*.1)),win:()=>[523,659,784,1046,1318].forEach((f,i)=>tone(f,.22,'triangle',.07,i*.1))};
+$('mu').textContent=muted?'🔇':'🔊';
+$('mu').onclick=()=>{muted=!muted;$('mu').textContent=muted?'🔇':'🔊';try{localStorage.setItem('orgiMute',muted?'1':'0')}catch{}};
+
+// ====== MOTOR ======
+const cv=$('cv'),cx=cv.getContext('2d'),panel=$('panel');
+const LW=800,LH=420,GY=360,PX=140,TOT=LV.reduce((s,l)=>s+l.qs.length,0);
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const OB=[{k:'reloj',w:42,h:42,t:'Retraso'},{k:'papeles',w:38,h:60,t:'Burocracia'},{k:'rayo',w:46,h:46,t:'Conflicto'}];
+let scale=1,W,S=null,ph='menu';
+function fit(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.width*d*LH/LW);scale=cv.width/LW}
+new ResizeObserver(fit).observe(cv);fit();
+const hash=n=>{const x=Math.sin(n*127.1+.5)*43758.5453;return x-Math.floor(x)};
+function newWorld(z,sc=0){W={z,t:0,sc,p:{y:GY,vy:0,j:0,inv:0,hurt:0},obs:[],ideas:[],parts:[],txt:[],fx:null,spawn:1.6,cs:1.2,askIn:4,shake:0,conf:0,
+ boss:{x:LW+140,y:130,hp:LV[z].qs.length,max:LV[z].qs.length,flash:0,dead:0,flee:0,alpha:1}}}
+newWorld(0);
+
+function burst(x,y,c,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=80+Math.random()*260;W.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,life:.6+Math.random()*.6,c,s:3+Math.random()*5})}}
+function say(x,y,s,c){W.txt.push({x,y,s,c,life:1})}
+function jump(){if(ph!='run')return;const p=W.p;if(p.j<2){p.vy=p.j?-700:-820;p.j++;SFX.jump()}}
+
+function update(dt){
+ W.t+=dt;const p=W.p,b=W.boss;
+ const sp=ph=='menu'?150:ph=='run'?290+W.z*28:ph=='end'?120:0;
+ W.sc+=sp*dt;
+ // jefe
+ const tx=b.flee?LW+260:660;if(!b.dead)b.x+=(tx-b.x)*Math.min(1,dt*2.5);
+ b.flash=Math.max(0,b.flash-dt);if(b.dead){b.alpha=Math.max(0,b.alpha-dt*.7);b.y-=40*dt}
+ // Orgi
+ p.vy+=2200*dt;p.y+=p.vy*dt;if(p.y>=GY){p.y=GY;p.vy=0;p.j=0;if(ph=='end')p.vy=-480}
+ p.inv=Math.max(0,p.inv-dt);p.hurt=Math.max(0,p.hurt-dt);W.shake=Math.max(0,W.shake-dt);
+ if(ph=='run'){
+  W.spawn-=dt;if(W.spawn<=0){W.obs.push({...OB[Math.random()*OB.length|0],x:LW+40});W.spawn=1.05+Math.random()*.9-W.z*.06}
+  W.cs-=dt;if(W.cs<=0){const n=3+(Math.random()*3|0),hy=Math.random()<.5?GY-70:GY-150;for(let i=0;i<n;i++)W.ideas.push({x:LW+30+i*44,y:hy});W.cs=2+Math.random()*1.6}
+  W.askIn-=dt;
+ }
+ for(const o of W.obs)o.x-=sp*dt;for(const c of W.ideas)c.x-=sp*dt;
+ if(ph=='run'){
+  const pl=PX-15,pr=PX+15,pb=p.y;
+  for(const o of W.obs)if(!o.hit&&p.inv<=0&&pr>o.x+6&&pl<o.x+o.w-6&&pb>GY-o.h+8){o.hit=1;p.inv=1.2;p.hurt=.5;S.pts=Math.max(0,S.pts-30);S.crash++;W.shake=.3;SFX.hit();burst(PX,p.y-40,'#ff5468',12);say(PX,p.y-100,'-30 '+o.t,'#ff5468')}
+  for(const c of W.ideas)if(!c.got&&Math.abs(c.x-PX)<28&&Math.abs(c.y-(p.y-42))<46){c.got=1;S.pts+=10;S.ideas++;SFX.coin();burst(c.x,c.y,'#ffd84a',6)}
+  if(W.askIn<=0&&p.y>=GY)ask();
+ }
+ W.obs=W.obs.filter(o=>o.x>-80);W.ideas=W.ideas.filter(c=>c.x>-40&&!c.got);
+ if(W.fx){const f=W.fx;f.t+=dt;if(f.t>=f.d&&!f.done){f.done=1;
+  if(f.k=='ok'){b.hp=Math.max(0,b.hp-1);b.flash=.35;burst(b.x,b.y,Z[W.z].c,22);say(b.x,b.y-90,'¡Pum!','#fff')}
+  else{p.hurt=.7;W.shake=.35;burst(PX,p.y-40,'#fff36b',14)}}
+  if(f.t>f.d+.4)W.fx=null}
+ if(ph=='end'){W.conf-=dt;if(W.conf<=0){W.conf=.35;burst(80+Math.random()*640,60+Math.random()*120,['#ffb020','#22c27a','#8b7cff','#ff4f8b','#3fb6ff'][Math.random()*5|0],14)}}
+ for(const q of W.parts){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=600*dt;q.life-=dt}W.parts=W.parts.filter(q=>q.life>0);
+ for(const q of W.txt){q.y-=50*dt;q.life-=dt}W.txt=W.txt.filter(q=>q.life>0);
+}
+
+// ====== DIBUJO ======
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+function circ(x,y,r){cx.beginPath();cx.arc(x,y,r,0,Math.PI*2);cx.fill()}
+function layer(off,col,base,vary,wmin,seed,win){const st=130,s0=Math.floor(off/st)-1;for(let i=s0;i<s0+9;i++){const x=i*st-off,h=base+hash(i*7+seed)*vary,w=wmin+hash(i*13+seed)*50;cx.fillStyle=col;cx.fillRect(x,GY-h,w,h);
+ if(win){cx.fillStyle=W.z==4?'rgba(255,220,120,.55)':'rgba(255,255,255,.35)';for(let wy=GY-h+12;wy<GY-16;wy+=22)for(let wx=x+10;wx<x+w-12;wx+=20)if(hash(wx*.37+wy)>.25)cx.fillRect(wx,wy,9,11)}}}
+function bubble(x,y,t){cx.font='bold 15px system-ui,sans-serif';const w=cx.measureText(t).width+20;x=Math.max(8,Math.min(LW-w-8,x-w/2));cx.fillStyle='#fff';rr(x,y,w,30,10);cx.fill();cx.fillStyle='#1a2340';cx.textAlign='left';cx.textBaseline='middle';cx.fillText(t,x+10,y+15)}
+function drawOrgi(){
+ const p=W.p;
+ cx.fillStyle='rgba(0,0,0,.22)';const sh=Math.max(.4,1-(GY-p.y)/220);cx.beginPath();cx.ellipse(PX,GY+4,22*sh,6*sh,0,0,Math.PI*2);cx.fill();
+ if(p.inv>0&&Math.floor(p.inv*12)%2)return;
+ const air=p.y<GY-1,run=sp()>0&&!air,a=run?Math.sin(W.t*16)*.7:air?.6:0;
+ cx.save();cx.translate(PX,p.y);cx.lineCap='round';
+ cx.strokeStyle='#1d2b4f';cx.lineWidth=7;for(const[dx,s]of[[-6,1],[6,-1]]){cx.beginPath();cx.moveTo(dx,-24);cx.lineTo(dx+Math.sin(a*s)*20,-24+Math.cos(a*s)*22);cx.stroke()}
+ cx.fillStyle='#2f5bea';rr(-17,-56,34,36,10);cx.fill();
+ cx.fillStyle='#fff';cx.beginPath();cx.moveTo(-7,-56);cx.lineTo(7,-56);cx.lineTo(0,-46);cx.fill();
+ cx.fillStyle='#ff4f6d';cx.beginPath();cx.moveTo(0,-50);cx.lineTo(4,-40);cx.lineTo(0,-31);cx.lineTo(-4,-40);cx.fill();
+ const arm=(run?Math.sin(W.t*16)*.5:0)+(ph=='fb'&&W.fx&&W.fx.k=='ok'?-1.6:0)+.4,hx=13+Math.sin(arm)*16,hy=-48+Math.cos(arm)*16;
+ cx.strokeStyle='#2f5bea';cx.lineWidth=8;cx.beginPath();cx.moveTo(13,-48);cx.lineTo(hx,hy);cx.stroke();
+ cx.fillStyle='#8a5a2b';rr(hx-3,hy-1,20,14,3);cx.fill();cx.strokeStyle='#5c3a1a';cx.lineWidth=2;cx.beginPath();cx.moveTo(hx+4,hy-1);cx.lineTo(hx+4,hy-5);cx.lineTo(hx+12,hy-5);cx.lineTo(hx+12,hy-1);cx.stroke();
+ cx.fillStyle='#ffd7b0';circ(0,-74,19);
+ cx.fillStyle='#2b1d14';cx.beginPath();cx.arc(0,-77,19.5,Math.PI*1.02,Math.PI*1.98);cx.fill();
+ if(p.hurt>0){cx.strokeStyle='#1a1a1a';cx.lineWidth=2.5;for(const ex of[-6,7]){cx.beginPath();cx.moveTo(ex-4,-78);cx.lineTo(ex+4,-70);cx.moveTo(ex+4,-78);cx.lineTo(ex-4,-70);cx.stroke()}}
+ else{cx.fillStyle='#fff';circ(-6,-74,5.5);circ(7,-74,5.5);cx.fillStyle='#14182b';circ(-4.5,-73.5,2.8);circ(8.5,-73.5,2.8)}
+ cx.strokeStyle='#6b2f1a';cx.lineWidth=2.2;cx.beginPath();if(p.hurt>0)cx.arc(1,-61,4,Math.PI*1.15,Math.PI*1.85);else cx.arc(1,-67,5,.15*Math.PI,.85*Math.PI);cx.stroke();
+ cx.restore();
+}
+function drawBoss(){
+ const b=W.boss,z=Z[W.z];if(b.alpha<=0)return;
+ const y=b.y+Math.sin(W.t*2.2)*10;
+ cx.save();cx.globalAlpha=b.alpha;cx.translate(b.x,y);if(b.dead)cx.rotate((1-b.alpha)*1.4);
+ cx.fillStyle=b.flash>0?'#fff':z.c;
+ cx.beginPath();cx.arc(0,0,52,Math.PI,0);cx.lineTo(52,36);
+ for(let i=0;i<4;i++){const x0=52-i*26;cx.quadraticCurveTo(x0-13,36+(i%2?-10:14)+Math.sin(W.t*5+i)*5,x0-26,36)}cx.closePath();cx.fill();
+ cx.fillStyle='rgba(255,255,255,.18)';cx.beginPath();cx.ellipse(-20,-28,14,8,-.5,0,Math.PI*2);cx.fill();
+ if(b.dead){cx.strokeStyle='#14182b';cx.lineWidth=4;for(const ex of[-18,16]){cx.beginPath();cx.moveTo(ex-7,-17);cx.lineTo(ex+7,-3);cx.moveTo(ex+7,-17);cx.lineTo(ex-7,-3);cx.stroke()}}
+ else{cx.fillStyle='#fff';cx.beginPath();cx.ellipse(-18,-10,12,13,0,0,Math.PI*2);cx.ellipse(16,-10,12,13,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#14182b';circ(-22,-8,5.5);circ(12,-8,5.5);
+  cx.strokeStyle='#14182b';cx.lineWidth=5;cx.lineCap='round';cx.beginPath();cx.moveTo(-32,-30);cx.lineTo(-8,-22);cx.moveTo(4,-22);cx.lineTo(28,-30);cx.stroke()}
+ const laugh=ph=='fb'&&!S.right;cx.fillStyle='#2a0f1f';rr(-20,10,40,laugh?20:13,7);cx.fill();
+ cx.fillStyle='#fff';cx.beginPath();for(let i=0;i<4;i++){cx.moveTo(-17+i*10,11);cx.lineTo(-12+i*10,18);cx.lineTo(-7+i*10,11)}cx.fill();
+ cx.restore();
+ if(!b.dead&&b.x<LW){cx.save();cx.globalAlpha=b.alpha;cx.font='bold 15px system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='alphabetic';cx.lineWidth=4;cx.strokeStyle='rgba(0,0,0,.6)';cx.strokeText(z.boss,b.x,y-82);cx.fillStyle='#fff';cx.fillText(z.boss,b.x,y-82);
+  cx.fillStyle='rgba(0,0,0,.45)';rr(b.x-50,y-74,100,10,5);cx.fill();cx.fillStyle=z.c;rr(b.x-50,y-74,Math.max(4,100*b.hp/b.max),10,5);cx.fill();cx.restore()}
+}
+function drawObs(o){
+ const x=o.x,top=GY-o.h;cx.save();
+ if(o.k=='reloj'){cx.fillStyle='#fff';circ(x+21,GY-21,21);cx.strokeStyle='#2a2f45';cx.lineWidth=4;cx.beginPath();cx.arc(x+21,GY-21,19,0,Math.PI*2);cx.stroke();
+  cx.lineWidth=3;cx.lineCap='round';cx.beginPath();cx.moveTo(x+21,GY-21);cx.lineTo(x+21+Math.cos(W.t*4)*12,GY-21+Math.sin(W.t*4)*12);cx.moveTo(x+21,GY-21);cx.lineTo(x+21,GY-33);cx.stroke()}
+ else if(o.k=='papeles'){for(let i=0;i<6;i++){cx.fillStyle=i%2?'#f2f2f2':'#ffffff';cx.strokeStyle='#8a93a8';cx.lineWidth=1.5;const ox=Math.sin(i*2.3)*3;cx.fillRect(x+ox,GY-10-i*10,38,10);cx.strokeRect(x+ox,GY-10-i*10,38,10)}
+  cx.fillStyle='#e0455c';cx.font='bold 10px system-ui';cx.textAlign='center';cx.fillText('NO',x+19,GY-26)}
+ else{cx.fillStyle='#ffd23f';cx.strokeStyle='#2a2f45';cx.lineWidth=3;cx.beginPath();cx.moveTo(x+23,top);cx.lineTo(x+46,GY);cx.lineTo(x,GY);cx.closePath();cx.fill();cx.stroke();
+  cx.fillStyle='#2a2f45';cx.beginPath();cx.moveTo(x+26,top+12);cx.lineTo(x+16,top+30);cx.lineTo(x+23,top+30);cx.lineTo(x+19,top+42);cx.lineTo(x+31,top+24);cx.lineTo(x+24,top+24);cx.closePath();cx.fill()}
+ cx.font='bold 11px system-ui,sans-serif';const tw=cx.measureText(o.t).width+10;cx.fillStyle='rgba(0,0,0,.55)';rr(x+o.w/2-tw/2,top-22,tw,17,6);cx.fill();cx.fillStyle='#fff';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(o.t,x+o.w/2,top-13);
+ cx.restore();
+}
+function drawIdea(c){const y=c.y+Math.sin(W.t*5+c.x*.05)*4;cx.fillStyle='rgba(255,224,102,.3)';circ(c.x,y,17);cx.fillStyle='#ffe066';circ(c.x,y,11);cx.fillStyle='#9aa3b8';cx.fillRect(c.x-5,y+9,10,7);cx.fillStyle='#fff';circ(c.x-3,y-3,3)}
+function drawFx(){
+ const f=W.fx;if(!f)return;const b=W.boss,p=W.p,u=Math.min(1,f.t/f.d);
+ if(f.k=='ok'&&!f.done){const sx=PX+20,sy=p.y-50,ex=b.x,ey=b.y,mx=(sx+ex)/2,my=Math.min(sy,ey)-130,x=(1-u)**2*sx+2*(1-u)*u*mx+u*u*ex,y=(1-u)**2*sy+2*(1-u)*u*my+u*u*ey;
+  cx.save();cx.translate(x,y);cx.rotate(u*12);cx.fillStyle='#ffc531';rr(-14,-10,28,20,3);cx.fill();cx.fillStyle='#e8a70e';cx.fillRect(-14,-13,12,5);cx.restore();
+  if(Math.random()<.6)W.parts.push({x,y,vx:0,vy:0,life:.3,c:'#fff3b0',s:4})}
+ if(f.k=='bad'&&f.t<f.d+.15){const sx=b.x-40,sy=b.y+20,ex=PX,ey=p.y-50;cx.save();cx.lineJoin='round';
+  for(const[w,c]of[[9,'#fff36b'],[3,'#fff']]){cx.strokeStyle=c;cx.lineWidth=w;cx.beginPath();cx.moveTo(sx,sy);for(let i=1;i<8;i++){const t=i/8;cx.lineTo(sx+(ex-sx)*t+(hash(i+Math.floor(W.t*30))-.5)*40,sy+(ey-sy)*t+(hash(i*3+Math.floor(W.t*30))-.5)*40)}cx.lineTo(ex,ey);cx.stroke()}cx.restore()}
+}
+const sp=()=>ph=='menu'?150:ph=='run'?290+W.z*28:ph=='end'?120:0;
+function draw(){
+ const z=Z[W.z];cx.setTransform(scale,0,0,scale,0,0);cx.save();
+ if(W.shake>0&&!RM)cx.translate((Math.random()-.5)*12,(Math.random()-.5)*12);
+ const g=cx.createLinearGradient(0,0,0,GY);g.addColorStop(0,z.sky[0]);g.addColorStop(1,z.sky[1]);cx.fillStyle=g;cx.fillRect(-20,-20,LW+40,LH+40);
+ if(W.z==4){cx.fillStyle='#fff';for(let i=0;i<45;i++)cx.fillRect(hash(i)*LW,hash(i+99)*210,2,2);cx.fillStyle='#fff6d6';circ(110,70,26)}
+ else{cx.fillStyle='rgba(255,255,255,.85)';for(let i=0;i<4;i++){const x=((i*260-W.sc*.06)%1040+1040)%1040-120,y=40+hash(i)*70;circ(x,y,22);circ(x+24,y-8,26);circ(x+50,y,20)}}
+ layer(W.sc*.15,z.far,110,120,70,1,0);layer(W.sc*.4,z.near,60,95,90,2,1);
+ cx.fillStyle=z.gr;cx.fillRect(-20,GY,LW+40,LH-GY+20);
+ cx.fillStyle='rgba(255,255,255,.28)';for(let x=-(W.sc%60);x<LW;x+=60)cx.fillRect(x,GY+28,30,4);
+ W.ideas.forEach(drawIdea);W.obs.forEach(drawObs);drawBoss();drawOrgi();drawFx();
+ for(const q of W.parts){cx.globalAlpha=Math.min(1,q.life*2);cx.fillStyle=q.c;cx.fillRect(q.x,q.y,q.s,q.s)}cx.globalAlpha=1;
+ cx.font='bold 18px system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+ for(const q of W.txt){cx.globalAlpha=Math.min(1,q.life*2);cx.lineWidth=4;cx.strokeStyle='rgba(0,0,0,.6)';cx.strokeText(q.s,q.x,q.y);cx.fillStyle=q.c;cx.fillText(q.s,q.x,q.y)}cx.globalAlpha=1;
+ // diálogos
+ const b=W.boss,by=b.y+Math.sin(W.t*2.2)*10;
+ if(ph=='menu')bubble(PX+60,W.p.y-150,'¡Ayúdame a poner orden en la empresa!');
+ else if(ph=='ask')bubble(b.x-60,by+60,'¡Responde si puedes!');
+ else if(ph=='fb')S.right?bubble(PX+40,W.p.y-140,'¡Toma esto!'):bubble(b.x-60,by+60,'¡Ja, ja, ja!');
+ else if(ph=='clear')S.won?bubble(PX+60,W.p.y-140,'¡Un problema menos!'):bubble(Math.min(b.x,LW-100),by+60,'¡Volveré!');
+ else if(ph=='end')bubble(PX+60,W.p.y-140,'¡Empresa en orden!');
+ cx.restore();
+ if(S&&ph!='menu'){cx.font='bold 17px system-ui,sans-serif';const t=`⭐ ${S.pts}   💡 ${S.ideas}${S.streak>1?'   🔥 '+S.streak:''}`,w=cx.measureText(t).width+24;
+  cx.fillStyle='rgba(0,0,0,.45)';rr(12,12,w,34,17);cx.fill();cx.fillStyle='#fff';cx.textAlign='left';cx.textBaseline='middle';cx.fillText(t,24,30)}
+}
+
+// ====== LÓGICA DEL JUEGO ======
+function go(){
+ const nm=$('nm').value.trim();if(!nm){$('nm').focus();return}
+ tone(660,.08,'triangle',.05);
+ S={name:nm,order:LV.map(L=>shuffle(L.qs)),qi:0,lvOk:0,ok:0,pts:0,streak:0,best:0,res:[],crash:0,ideas:0,bosses:0};
+ newWorld(0,W.sc);ph='run';render();
+}
+function ask(){
+ W.obs.forEach(o=>{if(o.x<PX+360&&o.x>PX-60){o.gone=1;burst(o.x+o.w/2,GY-o.h/2,'#ffffff',8)}});W.obs=W.obs.filter(o=>!o.gone);
+ const q=S.order[W.z][S.qi];S.q=q;S.done=0;S.sel=[];S.pick=-1;
+ S.opts=q.it?null:(q.s?shuffle:x=>x)(q.o.map((t,k)=>({t,c:k==q.a})));
+ S.perm=q.it?shuffle(q.it.map((_,i)=>i)):null;
+ S.lim=q.it?50:30;S.t0=performance.now();ph='ask';SFX.ask();render();
+}
+function timer(){
+ const left=S.lim-(performance.now()-S.t0)/1000,e=$('tb'),n=$('tl');
+ if(e){e.style.width=Math.max(0,left/S.lim*100)+'%';e.classList.toggle('low',left<S.lim*.25)}
+ if(n)n.textContent=Math.ceil(Math.max(0,left))+' s';
+ if(left<=0)fin(false,-1,'⏰ Se acabó el tiempo.');
+}
+function fin(right,pick,why){
+ if(ph!='ask')return;ph='fb';S.done=1;S.pick=pick;S.right=right;
+ if(right){const left=Math.max(0,S.lim-(performance.now()-S.t0)/1000)|0;S.ok++;S.lvOk++;S.streak++;S.best=Math.max(S.best,S.streak);
+  const g=100+left*2+Math.min(S.streak-1,5)*10;S.pts+=g;S.why=`¡Golpe certero! +${g} puntos${S.streak>=3?'. 🔥 Racha de '+S.streak:''}`;SFX.ok();W.fx={k:'ok',t:0,d:.55}}
+ else{S.streak=0;S.why=`${why||'Respuesta incorrecta.'} ${Z[W.z].boss} te lanzó un rayo.`;SFX.bad();W.fx={k:'bad',t:0,d:.35}}
+ S.res.push({l:W.z,q:S.q.q,right,e:S.q.e});render();
+}
+function next(){
+ if(ph!='fb')return;S.qi++;
+ if(S.qi<LV[W.z].qs.length){ph='run';W.askIn=4.5+Math.random()*2.5;render();return}
+ S.won=S.lvOk>=Math.ceil(LV[W.z].qs.length/2);
+ if(S.won){S.bosses++;W.boss.hp=0;W.boss.dead=1;SFX.win();burst(W.boss.x,W.boss.y,Z[W.z].c,45);burst(W.boss.x,W.boss.y,'#fff',20)}else W.boss.flee=1;
+ ph='clear';render();
+}
+function nextZone(){
+ if(ph!='clear')return;const z=W.z+1;
+ if(z>=LV.length){end();return}
+ newWorld(z,W.sc);S.qi=0;S.lvOk=0;ph='run';render();
+}
+function end(){
+ ph='end';const nota=(S.ok/TOT*5).toFixed(1);S.nota=nota;
+ const R=load();R.push({n:S.name,s:+nota,p:S.pts});R.sort((a,b)=>b.s-a.s||b.p-a.p);try{localStorage.setItem('orgiRank',JSON.stringify(R.slice(0,10)))}catch{}
+ SFX.win();render();push({n:S.name,s:+nota,p:S.pts,t:Date.now()}).then(refresh);
+}
+function toMenu(){S=null;newWorld(0,W.sc);ph='menu';render();refresh()}
+async function copy(b){const t=`${S.name}: nota ${S.nota}/5.0 (${S.ok}/${TOT} aciertos, ${S.pts} puntos) en Orgi contra el Caos`;try{await navigator.clipboard.writeText(t);b.textContent='Resultado copiado'}catch{b.textContent=t}}
+
+function qView(){
+ const q=S.q,z=Z[W.z],n=LV[W.z].qs.length;
+ let h=`<div class="hud2"><span><span class="dot" style="background:${z.c}"></span>${z.boss} te desafía</span><span>Golpe ${S.qi+1} de ${n}</span></div>`;
+ if(!S.done)h+=`<div class="tbw"><div class="tb"><i id="tb"></i></div><span id="tl" class="mut"></span></div>`;
+ h+=`<h2>${q.q}</h2>`;
+ if(q.it){
+  h+=`<p class="mut">Toca los pasos en el orden correcto. Toca uno ya elegido para quitarlo.</p><ol class="sel">${S.sel.map((v,p)=>`<li><button class="btn ${S.done?(v==p?'ok':'no'):''}" data-r="${v}" ${S.done?'disabled':''}>${q.it[v]}</button></li>`).join('')}</ol>`;
+  if(!S.done)h+=S.perm.filter(i=>!S.sel.includes(i)).map(i=>`<button class="btn" data-p="${i}">${q.it[i]}</button>`).join('')+`<button class="btn big" id="ck" ${S.sel.length<q.it.length?'disabled':''}>Lanzar respuesta</button>`;
+  else h+=`<p class="mut">Orden correcto:</p><ol class="sel">${q.it.map(t=>`<li>${t}</li>`).join('')}</ol>`;
+ }else h+=S.opts.map((o,k)=>`<button class="btn ${S.done?(o.c?'ok':k==S.pick?'no':''):''}" data-k="${k}" ${S.done?'disabled':''}><span class="key">${k+1}</span><span>${o.t}</span></button>`).join('');
+ if(S.done)h+=`<div class="fb ${S.right?'okb':'nob'}"><b>${S.why}</b><br>${q.e}</div><button class="btn big" id="nx">${S.qi+1<n?'Seguir corriendo':'Ver cómo terminó el duelo'}</button>`;
+ return h;
+}
+function render(){
+ let h='';
+ if(ph=='menu')h=`<h1>Orgi contra el Caos</h1>
+ <p>La empresa creció y el caos se apoderó de ella. Ayuda a Orgi a recorrer 5 zonas, esquivar problemas y derrotar a los jefes del desorden con lo que aprendiste sobre estructura organizacional.</p>
+ <p class="mut">Toca la pantalla o pulsa espacio para saltar (doble toque para doble salto). Cada respuesta correcta es un golpe al jefe. Tu nota sale de tus aciertos en las ${TOT} preguntas, de 0.0 a 5.0. Los puntos, ideas y choques solo cuentan para el ranking.</p>
+ <input id="nm" maxlength="30" placeholder="Tu nombre y apellido" autocomplete="name">
+ <button class="btn big" id="go">Empezar la misión</button><div id="rk">${rank()}</div>`;
+ else if(ph=='run')h=`<div class="hud2"><span><span class="dot" style="background:${Z[W.z].c}"></span>Zona ${W.z+1} de ${LV.length}: ${LV[W.z].n}</span><span>Golpe ${S.qi+1} de ${LV[W.z].qs.length}</span></div>
+ <button class="btn big" id="jp">Saltar</button><p class="mut c">Esquiva retrasos, burocracia y conflictos. Atrapa ideas 💡 para sumar puntos. ${Z[W.z].boss} te hará una pregunta en cualquier momento.</p>`;
+ else if(ph=='ask'||ph=='fb')h=qView();
+ else if(ph=='clear'){const n=LV[W.z].qs.length,z=Z[W.z];
+  h=`<h2>${S.won?'🏆 ¡Derrotaste a '+z.boss+'!':'💨 '+z.boss+' escapó'}</h2><p>Acertaste ${S.lvOk} de ${n} en ${LV[W.z].n}.</p>${S.won?'':'<p class="mut">Necesitabas acertar la mitad para derrotarlo. No pasa nada: tu nota cuenta cada acierto, así que sigue sumando.</p>'}
+  <button class="btn big" id="nz">${W.z+1<LV.length?'Ir a la zona '+(W.z+2)+': '+LV[W.z+1].n:'Ver mi nota final'}</button>`}
+ else if(ph=='end'){const bad=S.res.filter(x=>!x.right),n=+S.nota;
+  const msg=n>=4.5?'🏆 Dominas el tema':n>=4?'🎉 Muy buen trabajo':n>=3?'👍 Aprobaste, repasa los detalles':'📚 Repasa y vuelve a intentarlo';
+  h=`<p class="mut c">${esc(S.name)}</p><div class="nota">${S.nota}</div><p class="c"><b>de 5.0</b><br>${msg}</p>
+  <div class="row"><span>✅ Aciertos</span><b>${S.ok} de ${TOT}</b></div><div class="row"><span>❌ Errores</span><b>${TOT-S.ok}</b></div>
+  <div class="row"><span>👾 Jefes derrotados</span><b>${S.bosses} de ${LV.length}</b></div><div class="row"><span>⭐ Puntos</span><b>${S.pts}</b></div>
+  <div class="row"><span>💡 Ideas atrapadas</span><b>${S.ideas}</b></div><div class="row"><span>💥 Choques</span><b>${S.crash}</b></div><div class="row"><span>🔥 Mejor racha</span><b>${S.best}</b></div>
+  <div class="sec"><h2>Aciertos por zona</h2>${LV.map((L,i)=>{const r=S.res.filter(x=>x.l==i);return`<div class="row"><span><span class="dot" style="background:${Z[i].c}"></span>${L.n}</span><b>${r.filter(x=>x.right).length}/${r.length}</b></div>`}).join('')}</div>
+  ${bad.length?`<div class="sec"><h2>Para repasar</h2>${bad.map(x=>`<details><summary>${x.q}</summary><p>${x.e}</p></details>`).join('')}</div>`:''}
+  <button class="btn big" id="cp">Copiar mi resultado</button><button class="btn" id="again" style="justify-content:center">Jugar de nuevo</button><div id="rk">${rank()}</div>`}
+ panel.innerHTML=h;
+}
+
+// ====== CONTROLES ======
+cv.addEventListener('pointerdown',e=>{e.preventDefault();jump()});
+panel.addEventListener('pointerdown',e=>{if(e.target.closest('#jp')){e.preventDefault();jump()}});
+panel.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(b.id=='go')go();else if(b.id=='nx')next();else if(b.id=='nz')nextZone();else if(b.id=='again')toMenu();else if(b.id=='cp')copy(b);
+ else if(ph=='ask'){
+  if(d.k!=null){const k=+d.k;fin(S.opts[k].c,k)}
+  else if(d.p!=null){S.sel.push(+d.p);render()}
+  else if(d.r!=null){S.sel=S.sel.filter(x=>x!=+d.r);render()}
+  else if(b.id=='ck')fin(S.sel.every((v,i)=>v==i),-1,'Ese no era el orden.');
+ }
+});
+addEventListener('keydown',e=>{
+ if(e.target.tagName=='INPUT'){if(e.key=='Enter')go();return}
+ if((e.code=='Space'||e.key=='ArrowUp')&&ph=='run'){e.preventDefault();jump()}
+ else if(ph=='ask'&&S.opts&&/^[1-4]$/.test(e.key)){const k=+e.key-1;if(S.opts[k])fin(S.opts[k].c,k)}
+ else if(e.key=='Enter'&&ph=='fb'){e.preventDefault();next()}
+ else if(e.key=='Enter'&&ph=='clear'){e.preventDefault();nextZone()}
+});
+let last=performance.now();
+function loop(now){const dt=Math.min(.033,(now-last)/1000);last=now;update(dt);draw();if(ph=='ask')timer();requestAnimationFrame(loop)}
+render();refresh();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
